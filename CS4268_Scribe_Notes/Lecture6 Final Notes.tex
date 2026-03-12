@@ -1,0 +1,356 @@
+\noindent
+\textbf{CS4268 AY2025-26 Sem 2}
+\\
+\noindent
+Lecturer: Divesh Aggarwal
+\hfill
+Lecture 6                      %%% FILL IN LECTURE NUMBER HERE
+\hfill
+Date: February 19, 2026          %%% FILL IN LECTURE DATE HERE
+
+
+\noindent
+\rule{\textwidth}{1pt}
+
+\medskip
+
+\section{Quantum Fourier Transform(s)}
+
+Before we begin let us recall the notion of a Fourier transform, first conceived of by Joseph Fourier in his analysis of heat flow. The core idea is to decompose an arbitrary function in terms of simpler, well-behaved functions, historically called `frequency functions' because in that context these simpler functions were sine/cosine wave functions parametrized by frequencies. More specifically, `well-behaved' here refers to invariance under the translation operation $T_a(f):=f(x-a)$. The translation-invariant functions are the eigenfunctions of $T_a$ for all $a \in \mathbb{R}$. In Joseph Fourier's case these were 
+the frequency basis functions $\chi_\xi(x):= e^{2\pi i \xi x}$, and the Fourier-transformed function $\hat{f}$ is given as a linear combination of these:
+\begin{align*}
+    \hat{f}(\xi) = \int_{\infty}^{\infty} f(x)e^{-2\pi i \xi x} dx.
+\end{align*}
+The integral here can be thought of as a linear combination. If you are willing to accept the vector notation
+\begin{align*}
+    \ket{f} = \int_{-\infty}^\infty f(x) \ket{x} dx
+\end{align*}
+and 
+\begin{align*}
+    \ket{\xi} = \int_{-\infty}^\infty \chi_\xi(x) \ket{x} dx
+\end{align*}
+then taking their inner product (which is defined as $\langle f|g \rangle:= \int_\infty^\infty f(x)\overline{g(x)} dx$ for functions)
+one can check that $\langle \xi|f \rangle = \hat{f}(\xi)$. Note that we have used the Dirac delta function, which is the infinite-dimensional variant of the Kronecker delta: $\langle y|x \rangle = \delta(x-y)$. The key takeaway is $\langle x|f \rangle = f(x)$ and $\langle \xi|f \rangle = \hat{f}(\xi)$, thus $f(x)$ and $\hat{f}(\xi)$ are really simply different ways of representing $f$, with respect to different bases. Also note that technically speaking, the Fourier transform is a function $\mathcal{F}$ taking as input a function $f$ and outputting another function $\hat{f}$, i.e.
+\begin{align*}
+    \mathcal{F}(f) = \hat{f}.
+\end{align*}
+It has become somewhat customary to refer to $\hat{f}$ as the Fourier transform of $f$ however, because of convenience, and we too shall often do so. In practice this doesn't cause much confusion but just be aware of the difference.
+
+Before we proceed further let us point out a way of viewing things that is pervasive throughout discrete mathematics: \textit{functions and vectors are the same objects}. Specifically, what this refers to is the
+\begin{fact}[Function-Vector Equivalence]\label{remark:function-vector_equivalence}
+    Let $S$ be a finite set and $G$ be a field. Then functions $f$ with domain $S$ and codomain $G$ are the same as $|S|$-sized column/row vectors $v$ taking values in $G$, through the correspondence
+    \begin{align*}
+        f(i) \leftrightarrow v_i.
+    \end{align*}
+    Here since $S$ is finite we can let it be $[N]$ for some positive integer $N$, and in practice $G$ is usually a number system such as the real numbers/complex numbers/finite fields or subsets thereof.
+    
+    There is nothing deep about this statement, simply it means if $f$ is defined over a finite set of elements we can enumerate all its values (in some arbitrarily chosen order), then compile it into a vector. In fact this could be generalized to infinite-sized domains, with additional technical considerations of course. The reason we mention this here is because the Fourier transform is frequently stated for both functions and vectors, and there might be a misunderstanding that these are different things, i.e. there are notions of Fourier transforms for functions, and also for vectors. These are really the same thing.
+
+    With this equivalence in mind, if we write $f$ as a column vector, then because the Fourier transform/operator is a linear function, it admits a matrix representation, such as the $H^{\otimes n}$ and $DFT$ operators we shall see below. These matrices are also referred to as Fourier transforms. Hopefully this isn't too confusing. Just bear in mind that functions $\leftrightarrow$ vectors and linear functions of functions $\leftrightarrow$ matrices and you'll be fine.
+\end{fact}
+
+Back to the Fourier transform. The Fourier transform/decomposition was subsequently generalized to spaces beyond $\mathbb{R}^n$, and the study of this theory in the modern context is also known as harmonic analysis, which has deep links to many other fields of mathematics, most notably PDEs and representation theory. What we called `frequencies' also came to adopt fancier names, such as `harmonics', or `characters' (in the representation theory context). In particular, the theory of Fourier/Harmonic analysis over \textit{finite, abelian} groups is very well-developed. As it turns out, in computer science and this course in particular we are most interested in the set $[N]$, where $N=2^n$ for some $n$. This set is called the Boolean hypercube for obvious reasons.
+
+Now note that there are two \textit{distinct} abelian group operations $[N]$ admits. First, for any positive integer $N$ (not just those which are powers of two), $[N]$ can be equipped with the addition modulo $N$ operation. Second, if $N=2^n$ then representing the numbers in binary we can equip $[N]$ with the bitwise addition modulo 2 operation. These are two \textit{distinct} group operations defined on the \textit{same} underlying set, and give rise to different Fourier transforms. The Hadamard-Walsh transform is precisely the Fourier transform with respect to the second group operation, where we now call the group $\mathbb{Z}_2^n$. The `conventional' Fourier transform, also called the discrete Fourier transform is the Fourier transform with respect to the first group operation, where we now call the group $\mathbb{Z}_{2^n}$. This is the one people (including the standard textbook in quantum information and computation, \cite{NC10}) usually refer to when they say `quantum Fourier transform' (which technically refers to the quantum implementation of the DFT). 
+
+We first revisit the Hadamard-Walsh transform. In the next section, although not (yet) covered in class we discuss the quantum Fourier transform.
+
+\subsection{Hadamard-Walsh revisited}
+Recall Hadamard-Walsh. For a single qubit:
+\begin{align*}
+    H\ket{s} = \frac{1}{\sqrt{2}}\sum_{x \in \{0,1\}}(-1)^{xs}\ket{x}.
+\end{align*}
+
+Tensoring $n$ copies, for $s = s_1\dots s_n \in \{0,1\}^n$:
+\begin{align*}
+    H^{\otimes n}\ket{s_1,\ldots,s_n} &= \bigotimes_{i=1}^n H\ket{s_i} = \frac{1}{\sqrt{N}}\sum_{x_1,\ldots,x_n \in \{0,1\}}(-1)^{x_1 s_1 + \cdots + x_n s_n}\ket{x_1\cdots x_n},
+\end{align*}
+where $N = 2^n$. We define the \textbf{characters}:
+\begin{align*}
+    \ket{\chi_s} := \frac{1}{\sqrt{N}}\sum_{x \in \{0,1\}^n}(-1)^{x \cdot s}\ket{x}, \quad x \cdot s = \sum_{i=1}^n x_i s_i \pmod{2}.
+\end{align*}
+That is, $\ket{s} \xrightarrow{H^{\otimes n}} \ket{\chi_s}$, i.e., $H^{\otimes n}$ maps each computational basis state to the corresponding character state.
+
+The character states $\{\ket{\chi_s}\}_{s \in \{0,1\}^n}$ form an orthonormal basis with the following key properties:
+\begin{enumerate}
+    \item \textbf{Orthonormality}: $\braket{\chi_t}{\chi_s} = \delta_{ts}$.
+    \item \textbf{Self-inverse}: $(H^{\otimes n})^{-1} = H^{\otimes n}$, so $\ket{\chi_s} \xrightarrow{H^{\otimes n}} \ket{s}$.
+\end{enumerate}
+Thus $H^{\otimes n}$ is a change-of-basis between the computational basis $\{\ket{s}\}$ and the character basis $\{\ket{\chi_s}\}$.
+
+By linearity, for a general $n$-qubit state $\ket{\psi} = \sum_x \alpha_x\ket{x}$:
+\begin{align*}
+    H^{\otimes n}\ket{\psi} = \sum_{s \in \{0,1\}^n}\beta_s\ket{s}, \quad \beta_s = \braket{\chi_s}{\psi} = \frac{1}{\sqrt{N}}\sum_{x \in \{0,1\}^n}(-1)^{s \cdot x}\alpha_x.
+\end{align*}
+The new coefficient $\beta_s$ is the inner product of $\ket{\psi}$ with the character $\ket{\chi_s}$, i.e., it measures the overlap of $\ket{\psi}$ with the character $\ket{\chi_s}$.
+
+\paragraph{Functions encoded as quantum states:} For $g: \{0,1\}^n \to \mathbb{C}$ satisfying $\frac{1}{N}\sum_{x \in \{0,1\}^n}|g(x)|^2 = 1$, define
+\begin{align*}
+    \ket{g} = \frac{1}{\sqrt{N}}\sum_{x \in \{0,1\}^n}g(x)\ket{x}.
+\end{align*}
+Nothing new here, this is just the function-vector correspondence in bra-ket notation. For a Boolean $F: \{0,1\}^n \to \{0,1\}$, setting $f(x) = (-1)^{F(x)} \in \{+1,-1\}$ satisfies this property (since $|f(x)|^2 = 1$ for all $x$, and averaging over $N$ inputs gives 1), yielding the valid quantum state $\ket{f} = \frac{1}{\sqrt{N}}\sum_x (-1)^{F(x)}\ket{x}$. There are $2^{2^n}$ such Boolean functions.
+
+Writing $\ket{g}$ in the character basis $\ket{g} = \sum_{s \in \{0,1\}^n}\hat{g}(s)\ket{\chi_s}$ gives the \textbf{Fourier coefficients}
+\begin{align*}
+     \hat{g}(s) = \braket{\chi_s}{g} = \frac{1}{N}\sum_{x \in \{0,1\}^n}(-1)^{s \cdot x}g(x).
+\end{align*}
+Applying $H^{\otimes n}$ transforms the character basis back to the computational basis:
+\begin{align*}
+    \ket{g} \xrightarrow{H^{\otimes n}} \sum_{s \in \{0,1\}^n}\hat{g}(s)\ket{s}.
+\end{align*}
+Measuring after this Hadamard samples $s$ with probability $|\hat{g}(s)|^2$. Since $\ket{g}$ is a unit vector, $\sum_s |\hat{g}(s)|^2 = 1$.
+
+The Fourier coefficient $\hat{g}(s)$ is large (in absolute value, close to 1) precisely when $g(x)$ resembles the character $\chi_s(x) = (-1)^{s \cdot x}$ for many values of $x$. For $g, \chi_s$ taking values in $\{+1,-1\}$:
+\begin{align*}
+    \hat{g}(s) = \frac{\#\{x : \chi_s(x) = g(x)\} - \#\{x : \chi_s(x) \neq g(x)\}}{N}.
+\end{align*}
+In particular, if $\hat{g}(s)$ is large (close to 1), then $|\hat{g}(s')|^2$ must be small for all $s' \neq s$, since the absolute values squared must sum to 1. This means $g$ closely resembles the single character $\chi_s$.
+
+\subsection{Quantum Fourier Transform}
+The Quantum Fourier Transform (henceforth simply QFT) is the quantum analogue of the classical discrete Fourier transform. It is a fundamental subroutine in many quantum algorithms, including Shor's algorithm for factoring, owing to its ability to extract periodicity efficiently.
+
+\begin{enumerate}
+    \item \textbf{Binary Representation:} 
+    To express the QFT elegantly, it is highly convenient to utilize the binary representation of numbers. For an integer $\alpha \geq 1$, its binary expansion is written as:
+    \begin{align*}
+        \alpha = \alpha_1\dots\alpha_n = \alpha_1 2^{n-1} + \alpha_2 2^{n-2} + \dots + \alpha_n 2^0
+    \end{align*}
+    where each $\alpha_i \in \{0, 1\}$. 
+    Similarly, we can represent fractional numbers $0 \leq \alpha < 1$ using binary fractions:
+    \begin{align*}
+        \alpha = 0.\alpha_1\dots\alpha_n = \alpha_1 2^{-1} + \alpha_2 2^{-2} + \dots + \alpha_n 2^{-n}
+    \end{align*}
+    Note the direct algebraic relationship: if we divide an integer $\alpha = \alpha_1\dots\alpha_n$ by $2^n$, we simply shift the binary point to the left $n$ times, yielding the fraction $\alpha/2^n = 0.\alpha_1\dots\alpha_n$.
+
+    \item \textbf{Discrete Fourier Transform (DFT) and QFT:}
+    Let $\mathbf{x}\in \mathbb{C}^N$ be a vector of complex numbers. For simplicity, we typically assume $N=2^n$ for some $n \in \mathbb{N}$. The classical Discrete Fourier Transform (DFT) implements the mapping $\mathbf{x} \mapsto \mathbf{y} = \text{DFT}(\mathbf{x})$, which is defined component-wise as:
+    \begin{align*}
+        y_k = \frac{1}{\sqrt{N}} \sum_{j=0}^{N-1} e^{2\pi ijk/N} x_j \quad \implies \quad \text{DFT} = \frac{1}{\sqrt{N}} \sum_{j,k=0}^{N-1} e^{2\pi ijk/N} \ketbra{j}{k}.
+    \end{align*}
+    The Quantum Fourier Transform implements the exact same linear transformation, but it acts on the probability amplitudes of a quantum state. For a given computational basis state $\ket{j}$, the QFT applies the following superposition:
+    \begin{align*}
+        \mathsf{QFT}\ket{j} = \frac{1}{\sqrt{N}} \sum_{k=0}^{N-1} e^{2\pi ijk/N} \ket{k}.
+    \end{align*}
+    By leveraging the binary fractional representation discussed in the previous point, we can factor this sum into a tensor product of $n$ individual qubits. In binary, the state becomes:
+    \begin{align*}
+        \mathsf{QFT}\ket{j_1\dots j_n} = \frac{1}{\sqrt{2^n}}\left( \ket{0}+e^{2\pi i0.j_n}\ket{1} \right)\left( \ket{0}+e^{2\pi i0.j_{n-1}j_n}\ket{1} \right)\cdots \left( \ket{0}+e^{2\pi i0.j_1j_2\dots j_n}\ket{1}\right).
+    \end{align*}
+    This product form is remarkably useful as it reveals that the QFT leaves the qubits in a completely unentangled state (a product state), provided the input was a basis state.
+
+    \item \textbf{Fast Fourier Transform (Cooley-Tukey Algorithm):}
+    Classically, computing the DFT directly from the definition requires $O(N^2)$ operations. The Cooley-Tukey Fast Fourier Transform (FFT) algorithm reduces this drastically. 
+    Start by splitting the DFT sum (absorb $1/\sqrt{N}$ into the $x_j$ for brevity) into its even and odd indexed terms:
+    \begin{align*}
+        y_k &= \sum_{j=0}^{N-1} e^{\frac{2\pi i jk}{N}} x_j\\
+        &= \sum_{j=0}^{N/2-1} e^{\frac{2\pi i (2j)k}{N}} x_{2j} + \sum_{j=0}^{N/2-1} e^{\frac{2\pi i (2j+1)k}{N}} x_{2j+1}\\
+        &= \underbrace{\sum_{j=0}^{N/2-1} e^{\frac{2\pi i jk}{N/2}} x_{2j}}_{E_k} + e^{\frac{2\pi ik}{N}}\underbrace{\sum_{j=0}^{N/2-1} e^{\frac{2\pi i jk}{N/2}} x_{2j+1}}_{O_k}.
+    \end{align*}
+    Notice that $E_k$ and $O_k$ are just smaller DFTs of size $N/2$. The key breakthrough of Cooley-Tukey is noticing the symmetry in the roots of unity, specifically $e^{\frac{2\pi i(k+N/2)}{N}} = -e^{\frac{2\pi ik}{N}}$, which allows us to write:
+    \begin{align*}
+        y_{k+\frac{N}{2}} = E_k - e^{\frac{2\pi ik}{N}}O_k.
+    \end{align*}
+    This symmetry means we only have to compute the first half of the sequence ($y_k$ from $k=0$ until $k=N/2-1$) to get the second half for free. By recursively breaking this up into smaller DFTs until reaching the base case of $N=2$, we continually reuse the results of intermediate computations. We can evaluate the total complexity by drawing the binary tree expansion of this procedure: at each level $l$, there are $2^l$ $E_k/O_k$ terms, and for each term, we have $N/2^l$ values of $k$. Each $E_k/O_k$ term requires combining its children nodes, taking $O(1)$ operations. With $O(N)$ operations per level and $\log_2 N$ levels in the tree, the total classical time complexity evaluates to $O(N \log N)$.
+
+    \item \textbf{Derivation of the Binary Representation of QFT:}
+    We can mathematically derive the tensor product form from the standard QFT definition by expanding the index $k$ into its binary representation $k = k_1 k_2 \dots k_n = \sum_{l=1}^n k_l 2^{n-l}$:
+    \begin{align*}
+        \mathsf{QFT}\ket{j_1\dots j_n} &= \frac{1}{\sqrt{2^n}} \sum_{k=0}^{2^n-1} e^{\frac{2\pi ijk}{2^n}} \ket{k}\\
+        &= \frac{1}{\sqrt{2^n}} \sum_{k_1,\dots k_n=0}^{1} e^{2\pi ij(\sum_{l=1}^n k_l 2^{-l})} \ket{k_1 \dots k_n}\\
+        &= \frac{1}{\sqrt{2^n}} \sum_{k_1,\dots k_n=0}^{1} \bigotimes_{l=1}^n e^{2\pi ijk_l 2^{-l}} \ket{k_l}\\
+        &= \frac{1}{\sqrt{2^n}} \bigotimes_{l=1}^n \left[\sum_{k_l=0}^{1} e^{2\pi ijk_l 2^{-l}} \ket{k_l}\right]\\
+        &= \frac{1}{\sqrt{2^n}} \bigotimes_{l=1}^n \left[\ket{0} + e^{2\pi ij 2^{-l}} \ket{1}\right]\\
+        &= \frac{1}{\sqrt{2^n}}\left( \ket{0}+e^{2\pi i0.j_n}\ket{1} \right)\left( \ket{0}+e^{2\pi i0.j_{n-1}j_n}\ket{1} \right)\cdots \left( \ket{0}+e^{2\pi i0.j_1j_2\dots j_n}\ket{1}\right).
+    \end{align*}
+    This derivation gives the core intuition for constructing the efficient quantum circuit. We define the phase rotation gate $R_k := \text{diag}(1,e^{\frac{2\pi i}{2^k}})$. To generate the fractions $0.j_l \dots j_n$ in the phases, we first apply a Hadamard gate to put the qubit in a superposition $\ket{0} + e^{2\pi i 0.j_l}\ket{1}$, and then apply controlled-$R_k$ gates from the lower significant qubits to systematically add the smaller binary fractions to the phase. 
+    
+    A 3-qubit QFT circuit, comprising the $H$ and controlled-$R_k$ gates, is illustrated below (note that the output order of qubits is reversed and generally requires SWAP gates at the end, which are sometimes omitted for simplicity):
+
+    \begin{center}
+    \begin{quantikz}
+        \lstick{$\ket{j_1}$} & \gate{H} & \ctrl{1} & \ctrl{2} & \qw & \qw & \qw & \qw \\
+        \lstick{$\ket{j_2}$} & \qw & \gate{R_2} & \qw & \gate{H} & \ctrl{1} & \qw & \qw \\
+        \lstick{$\ket{j_3}$} & \qw & \qw & \gate{R_3} & \qw & \gate{R_2} & \gate{H} & \qw
+    \end{quantikz}
+    \end{center}
+
+    \item \textbf{Algorithm Speedup and Caveats:}
+    The efficiency gains from the QFT are significant when viewed in terms of $n$, the number of bits (where $N = 2^n$). The classical FFT takes $\Theta(N \log N) = \Theta(n2^n)$ operations. In contrast, analyzing the circuit above, the $i$-th qubit requires one Hadamard and $n-i$ controlled-phase gates. Summing this over $n$ qubits gives $\frac{n(n+1)}{2}$ gates. Thus, the QFT takes $\Theta(n^2) = \Theta(\log^2 N)$ gates, an exponential speedup over the classical FFT.
+    
+    \textbf{Caveat:} The Fourier-transformed output state $\mathsf{QFT}\ket{x}$ is not directly analogous to having the vector $\text{DFT}(\mathbf{x})$ in memory. The resulting frequency components are encoded purely in the \textit{amplitudes} of the quantum state. To actually extract or learn these values, we must perform measurements. Due to the probabilistic nature of quantum measurement, extracting the full set of amplitudes requires executing the circuit exponentially many times, which eliminates the speedup if the full frequency spectrum is the goal. The QFT's true utility lies as an intermediate step where global properties (like periods) can be extracted without having to inspect every amplitude.
+\end{enumerate}
+
+\subsection{Comparison between Hadamard-Walsh and QFT}
+Now you have seen both Fourier transforms. Note that for the sake of brevity we have not really derived the characters from scratch. But this is not hard -- recall that characters are simply those vectors that are eigenvectors of the translation operators $T_af(x) := f(x-a)$. So to get the characters simply figure out what the translation operators look like and get their eigenvectors. Note that the presence of the $-$ (equivalently $+$ from the group axioms) symbol here indicates that translation is a \textit{group-dependent} notion. So different group operations give rise to different translation operators, which give rise to different characters, which give rise to different Fourier transforms. In a nutshell, Fourier analysis is really the study of character decompositions. 
+
+Alright. Here is a table comparing Hadamard-Walsh and QFT, in case you ever need it, or simply want a deeper understanding.
+\[
+\begin{array}{|c|c|c|}
+\hline
+\textbf{Feature} 
+& \textbf{Hadamard--Walsh} 
+& \textbf{DFT / QFT over }\mathbb{Z}_N\; (\text{often } N=2^n) \\
+\hline
+
+\text{Underlying Set} 
+& \{0,1\}^n 
+& \{0,1,\dots,N-1\} \\
+\hline
+
+\text{Group Operation} 
+& \text{Bitwise XOR mod 2} 
+& \text{Addition mod } N \\
+\hline
+
+\text{Group} 
+& \mathbb{Z}_2^n 
+& \mathbb{Z}_N \\
+\hline
+
+\text{Characters } \chi 
+& \chi_s(x)=(-1)^{s\cdot x} 
+& \chi_s(x)=e^{2\pi i sx/N} \\
+\hline
+
+\text{Transform}
+&
+& \\
+
+\text{Function Form} 
+& \widehat f(s)=\displaystyle\sum_{x\in\mathbb{Z}_2^n} 
+f(x)(-1)^{s\cdot x} 
+& \widehat f(s)=\displaystyle\sum_{x=0}^{N-1} 
+f(x)e^{-2\pi i sx/N} \\
+
+\text{Vector Form} 
+& \beta_s=\displaystyle\sum_{x\in\mathbb{Z}_2^n} 
+\alpha_x(-1)^{s\cdot x} 
+& \beta_s=\displaystyle\sum_{x=0}^{N-1} 
+\alpha_xe^{-2\pi i sx/N} \\
+\hline
+
+\text{Operator/Matrix Representation} 
+& H^{\otimes n} = \frac{1}{\sqrt{2^n}} \sum_{x,y \in \mathbb{Z}_2^n} (-1)^{x \cdot y} \ketbra{x}{y}
+& \text{DFT} = \frac{1}{\sqrt{N}} \sum_{x,y=0}^{N-1} e^{2\pi ixy/N} \ketbra{x}{y} \\
+\hline
+
+\end{array}
+\]
+
+And here's the one for the OG Fourier transform:
+\[
+\begin{array}{|c|c|}
+\hline
+\textbf{Feature} 
+& \textbf{Classical Fourier Transform} \\
+\hline
+
+\text{Underlying Set} 
+& \mathbb{R} \\
+\hline
+
+\text{Group Operation} 
+& \text{Addition } x+y \\
+\hline
+
+\text{Group} 
+& (\mathbb{R}, +) \\
+\hline
+
+\text{Characters } \chi 
+& \chi_\xi(x)=e^{2\pi i \xi x},\ \xi\in\mathbb{R} \\
+\hline
+
+\text{Transform} 
+& \widehat f(\xi)=\displaystyle\int_{\mathbb R} 
+f(x)e^{-2\pi i \xi x}\,dx \\
+\hline
+
+\end{array}
+\]
+
+
+\section{Deutsch-Jozsa and Bernstein-Vazirani}
+
+First consider the baby version, `Deutsch'. `Deutsch-Jozsa' is a generalization of Deutsch to $n$-input bit functions.
+
+\subsection{Deutsch Algorithm}
+\begin{enumerate}
+    \item \textbf{Idea:} The core idea is to determine whether a one-bit function $f: \{0,1\} \rightarrow \{0,1\}$ is constant or balanced. This function $f$ is implemented through the oracle $Q_F^*\ket{x,y} = \ket{x,y \oplus f(x)}$. Because it acts bijectively on the basis states, it is a permutation and hence also a unitary.
+    \item \textbf{Method:} We start from the initialized state $\ket{01}$. We then apply the sequence $Q_F^* \circ H \otimes H$ to get (up to a global phase) the state $\ket{\pm}\ket{-}$, where it is $+$ if $f(0)=f(1)$ and $-$ if $f(0) \neq f(1)$. We discard the second qubit and apply a Hadamard to the first. This yields $\ket{0} \iff f(0)=f(1) \iff f(0)\oplus f(1) = 0$ (meaning the function is constant), or $\ket{1} \iff f(0)\neq f(1) \iff f(0)\oplus f(1) = 1$ (meaning the function is balanced). This entire process only requires one single $Q_F^*$ call.
+    
+    \begin{center}
+    \begin{quantikz}
+    \lstick{$\ket{0}$} & \gate{H} & \gate[wires=2]{Q_F^*} & \gate{H} & \meter{} \\
+    \lstick{$\ket{1}$} & \gate{H} & \qw & \qw & \qw
+    \end{quantikz}
+    \end{center}
+    
+    \item \textbf{Key Insight:} Note that the key mechanism driving this algorithm is the phase-kickback mechanism $Q_F^*\ket{x}\ket{-} = (-1)^{f(x)}\ket{x}\ket{-}$.
+\end{enumerate}
+
+\subsection{Deutsch-Jozsa Algorithm}
+Deutsch-Jozsa is a generalization of Deutsch to $n$-bit functions. It elegantly leverages massively parallel phase-kickback to evaluate the global property of the function.
+
+\begin{enumerate}
+    \item \textbf{Mathematical identity:} Note that the parallel Hadamard transform on an $n$-qubit basis state yields $H^{\otimes n}\ket{x}=\frac{1}{\sqrt{2^n}}\sum_{y}(-1)^{x\cdot y}\ket{y}$.
+    \item \textbf{Protocol and Measurement:} Start from the initial state $\ket{0^n}\ket{1}$. We apply the operation sequence $H^{\otimes n} \circ Q_F^* \circ H^{\otimes n}\otimes H$ to get the state:
+    \begin{align*}
+        \sum_{z \in \{0,1\}^n} \left( \frac{1}{2^n} \sum_{x \in \{0,1\}^n} (-1)^{f(x)+x \cdot z} \right) \ket{z}.
+    \end{align*} 
+    We then measure the working $n$ qubits. Observe that the probability of measuring the all-zero state is $P(z=0^n) = \left|\frac{1}{2^n} \sum_{x \in \{0,1\}^n} (-1)^{f(x)}\right|^2$. This probability equals $1$ iff $f$ is constant and equals $0$ iff $f$ is balanced. Again, this only requires one $Q_F^*$ call.
+    
+    \begin{center}
+    \begin{quantikz}
+    \lstick{$\ket{0}^{\otimes n}$} & \gate{H^{\otimes n}} & \gate[wires=2]{Q_F^*} & \gate{H^{\otimes n}} & \meter{} \\
+    \lstick{$\ket{1}$} & \gate{H} & \qw & \qw & \qw
+    \end{quantikz}
+    \end{center}
+    
+    \item \textbf{Classical comparison:} Classically, a deterministic worst-case evaluation needs to query more than half the space, i.e., $2^{n-1}+1=O(2^n)$ queries. For a randomized algorithm: randomly pick $k$ distinct inputs $x_i$ and query to get $f(x_i)$; answer constant if $f(x_1)=\dots=f(x_k)$, and balanced otherwise. If $f$ was really constant, then the method works with certainty. However, if $f$ was balanced, then the false-positive condition $f(x_1)=\dots=f(x_k)$ occurs with probability $\frac{1}{2^{k-1}}$. So if our probability-error tolerance is $\varepsilon$, we would need $k=O(\log \frac{1}{\varepsilon})$ queries.
+\end{enumerate}
+
+\subsection{Bernstein-Vazirani Algorithm}
+Related to DJ is Bernstein-Vazirani, albeit with a slightly different end goal. The structure of the algorithm is very similar. Given a function $f: \{0,1\}^n \rightarrow \{0,1\}$ such that $f(x)=x \cdot s$ for some unknown secret string $s$, the goal is to find $s$.
+
+\begin{enumerate}
+    \item \textbf{Classical Bound:} Classically, the most efficient method is to probe the function bit by bit to obtain $f(1,0,\dots)=s_1, f(0,1,\dots)=s_2, \dots$. This strictly requires $n$ queries.
+    \item \textbf{Quantum Protocol:} Quantumly, the algorithm is the exact same as DJ: we apply the sequence $H^{\otimes n} \circ Q_F^* \circ H^{\otimes n}\otimes H$. Miraculously, measuring the query register produces the final output $\ket{s}$ with absolute certainty!
+    \item \textbf{Explanation:} Ok, actually there is nothing miraculous - it's simply because after applying the oracle query, phase kickback leaves us with the state $\frac{1}{\sqrt{2^n}} \sum_x (-1)^{x \cdot s} \ket{x}$. This expression is exactly the mathematical expansion of $H^{\otimes n}\ket{s}$. And since Hadamards are self-inverse ($H^2 = I$), applying the final layer of Hadamards exactly recovers the string $\ket{s}$.
+\end{enumerate}
+
+\section{Simon's Problem and Algorithm}
+
+\begin{enumerate}
+    \item Problem: given $f: \{0,1\}^n \rightarrow \{0,1\}^n$ s.t. $f(x)=f(y) \iff x=y\oplus s$, find $s$. 
+    \item Classical Case
+    \begin{enumerate}
+        \item A randomized algorithm: randomly pick $k$ (TBD) distinct inputs $x_i$ and query to get $f(x_i)$. If there is no collision, answer $s=0^n$. If there is a collision $f(x_i)=f(x_j)$, then answer $s=x_i \oplus x_j$. 
+        \item Analysis: If actually $s=0^n$ then the algorithm works with certainty. If actually $s \neq 0^n$ then we might answer wrongly if there is no observed collisions. Let the probability that the samples have no collision after $k\geq 2$ queries be $P(k)$. Suppose after $j-1$ queries there is no matching. The probability that on the $j$th, i.e. next query there is still no collision with one of the previous queries is then $1-\frac{j-1}{2^n-(j-1)}$. Thus after $k$ rounds,
+        \begin{align*}
+            P(k) &= \prod_{j=2}^k \left[ 1- \frac{j-1}{2^n-(j-1)} \right]\\
+            &\geq 1-\sum_{j=2}^k \left[ \frac{j-1}{2^n-(k-1)} \right]\\
+            &\geq 1- \frac{\Theta(k^2)}{2^n-\Theta(k)}.
+        \end{align*}
+        Remember that we \textit{do} want a collision! So we want $P(k)$ to be small, say $\varepsilon$ (equivalently, coll. prob. is $1-\varepsilon$). Then $P(k)<\varepsilon \implies k \in \Omega(2^{n/2})$. Here in the first $\geq$ we used $(1-a)(1-b)\geq 1-(a+b)$ for $0\leq a,b \leq 1$. Also note that we can assume from the outset that $k\leq 2^{n/2}$ because if $k>2^{n/2}$ then there has to be a collision.
+        \item Simon also showed \textit{any} randomized algorithm needs $k=\Omega(2^{n/2})$ queries (proof is similar to the one above).
+    \end{enumerate}
+    
+    \item Simon's Quantum Algorithm
+    \begin{enumerate}
+        \item Quantum part: Start with $n$ work qubits and $n$ ancilla qubits $\ket{0^n}\ket{0^n}$. Apply $(H^{\otimes n}\otimes I)O_f(H^{\otimes n} \otimes I)$ then measure the work qubits.
+        \item Classical postprocessing: repeat $n-1$ times to get $n-1$ strings $y_i$ all satisfying $y_i \cdot s =0$, where $y_i$ are linearly independent with positive probability. If lin. ind., use Gaussian elimination to solve system, giving two candidates $0^n$ and $s' \neq 0^n$. 
+        \item Test: if $f(0^n)=f(s')$, answer $s=s'$; otherwise $f(0^n)\neq f(s')$, answer $s=0^n$.
+        \item Boosting: repeat entire process $k$ times to boost prob. of obtaining lin. ind. $y_i$. (LI can be easily checked.) If for \text{any} run $f(0^n)=f(s')$, answer $s=s'$; otherwise if for \text{all} runs $f(0^n)\neq f(s')$, answer $s=0^n$.
+    \end{enumerate}
+    
+    \item Analysis of Simon's algorithm
+    \begin{enumerate}
+        \item Quantum: after applying the unitaries the state is
+        \begin{align*}
+            \ket{\psi} = \sum_y \ket{y} \left( \frac{1}{2^n} \sum_x (-1)^{x \cdot y} \ket{f(x)} \right).
+        \end{align*}
+        If $s=0^n$, $f$ is injective so $p(y) = \frac{1}{2^n}$ for all $y$. If $s \neq 0^n$, $f$ is two-to-one, so if $z \in \text{range}(f)$ then $f(x_z) = f(x_z') = z$ for $x_z = x_z' \oplus s$. Then $p(y) = \frac{1}{2^{n-1}}$ if $y \cdot s = 0$, and $p(y) = 0$ if $y \cdot s = 1$.
+        \item Postprocessing: suppose we have lin. ind. $\{y_i\}_{i=1}^{n-1}$. GE gives the two possible solutions: $0^n,s'\neq 0^n$. Suppose actually $s=0^n$. Then $f(0^n)\neq f(s')$, so our answer $s=0^n$ is always correct. Suppose actually $s \neq 0^n$. Then $f(s)=f(0^n)=f(s')$, so our answer $s'=s$ is always correct.
+        \item Probability of linear independence: given $m$ LI strings $y_1,\dots,y_m$, spanning subspace is size $2^m$. Prob of $y_{m+1}$ being LI to this is $\frac{2^n-2^m}{2^n}$. So prob of $n-1$ LI strings is $P=(1-\frac{2^1}{2^n})\dots(1-\frac{2^{n-2}}{2^n}) \geq 1-\sum_{i=1}^{n-2} \frac{1}{2^i} > \frac{1}{2}$. So prob. of \textit{no LI} even after running $k$ times is at most $(1-\frac{1}{2})^k < e^{-k/2}$. So prob. of \textit{at least one LI} after running $k$ times is at least $1 - e^{-k/2}$.
+    \end{enumerate}
+\end{enumerate}
