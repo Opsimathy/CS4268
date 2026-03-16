@@ -39,7 +39,8 @@ Quantum computing lies at the intersection of computer science, mathematics, and
 
 \subsection{Common Computational Tasks}
 Let's first look at some common computational tasks and their complexities on classical computers.
-\subsubsection{Multiplication}
+
+\paragraph{Multiplication}
 The classical primary-school (grid) algorithm for multiplying two \(n\)-digit numbers performs all digit-wise products explicitly and therefore requires a total of \(O(n^{2})\) single-digit operations. This was improved by Karatsuba, who introduced a divide-and-conquer strategy that reduces the multiplication of two \(n\)-digit numbers to three multiplications of size \(n/2\) (with some lower-order additions). Hence we get the recursion
 \[
         T(n) = 3T(n/2) + O(n).
@@ -48,7 +49,7 @@ yielding an overall time complexity of \(O\!\left(n^{\log_{2} 3}\right) \approx 
 
 The fastest known classical algorithms for multiplication go even further by utilizing the Fast Fourier Transform (FFT). For example, the Schönhage--Strassen algorithm for integer multiplication achieves a runtime of \(O(n \log n \log \log n)\) using FFT-based convolutions.
 
-\subsubsection{Factorization}
+\paragraph{Factorization}
 The simplest (and most direct) algorithm for factorizing an integer is \emph{trial division}. It finds a nontrivial divisor by checking integers $d = 2, 3, 4, \ldots$ and stopping when $d^2 > N$. This bound works because if $N = ab$ with $a \le b$, then $a \le \sqrt{N}$, and if no divisor exists up to $\sqrt{N}$, then $N$ is prime.
 
 In the worst case, this algorithm requires $O(\sqrt{N})$ divisions, or a net $O(\sqrt{N})$ number of arithmetic operations. If the input size is $n$ (where $n = \log_2 N$= number of bits), then
@@ -73,7 +74,7 @@ which is sub-exponential in $N$ but still super-polynomial in the input size, ma
 }
 \medskip
 
-\subsubsection{Unstructured Database Search Problem}
+\paragraph{Unstructured Database Search}
 In the unstructured database search problem, the idea is that given a bit string $a_1a_2...a_n$, suppose it is promised that exactly one position contains 1 and rest all are 0s. The goal is to find the unique position \( i \) for which \( a_i = 1 \).
 
 The classical deterministic approach to this problem is the brute force search algorithm. It checks all \( n \) possibilities in the input and finds the correct \( i \) for which \( a_i = 1 \) in an overall runtime of \( O(n) \). In the deterministic setting, it is easy to see that $\Omega(n)$ is a lower bound as well. Even if we allow classical randomized computation, it can be shown that we still have a complexity of $\Theta(n)$ for this problem.
@@ -84,7 +85,7 @@ Probabilistic computing consists of randomized algorithms that, in addition to t
 
 Randomized algorithms can usually be divided into two types: Monte Carlo algorithms and Las Vegas algorithms. Monte Carlo algorithms are those that always terminate within a prescribed polynomial time bound but may return an incorrect answer with some bounded probability. Las Vegas algorithms on the other hand always produce a correct output, but their running time is a random variable whose expected value is usually polynomial.
 
-\subsubsection{Primality Testing}
+\paragraph{Primality Testing}
 One of the primary problems where randomized algorithms prove to be useful is primality testing. The goal here is to identify whether the input number is prime or composite. As discussed earlier, deterministic trial division takes \( O(2^{n/2}) \) time for this.
 
 The Miller-Rabin test, on the other hand, uses Monte Carlo primality testing to achieve a complexity of \( O(n^{2} \log n \log \log n) \), which is polynomial in the input size. Solovay--Strassen \cite{SolovayStrassen77} is another randomized algorithm that achieves this task in a runtime of \( O(k \log^{3} n) \), where \( k \) is the number of tested bases. It was only very recently (2002) that a deterministic algorithm for primality testing was found. The AKS algorithm \cite{AKS04} provably runs in an overall time of \( O(\log^{12} N) \). Subsequent improvements under specific assumptions reduces this to \( O(\log^{6} N) \) \cite{LenstraPomerance19}.
@@ -117,7 +118,7 @@ As discussed earlier, quantum computing utilizes the principles of quantum mecha
 
 
 
-\section{Fundamental Axioms of Quantum Mechanics}
+\section{The Fundamental Axioms of Quantum Mechanics}
 
 In the previous section, we saw that probabilistic computing is "Classical Computing + Randomness."
 Quantum computing introduces something richer: interference via superposition and entanglement. A high-level summary is:
@@ -161,7 +162,7 @@ These amplitudes must satisfy the \textbf{normalization condition}:
 \]
 \end{definition}
 
-\subsubsection{Geometric Intuition (The Unit Circle)}
+\paragraph{Geometric Intuition (The Unit Circle)}
 If we restrict ourselves to \textbf{real} amplitudes ($\alpha, \beta \in \mathbb{R}$), the condition $\alpha^2 + \beta^2 = 1$ describes a circle of radius 1.
 Thus, we can visualize the state of a qubit as a point on the unit circle in $\mathbb{R}^2$.
 
@@ -212,7 +213,7 @@ Consequently, a general superposition $\ket{\psi} = \alpha\ket{0} + \beta\ket{1}
     \ket{\psi} = \alpha \begin{bmatrix} 1 \\ 0 \end{bmatrix} + \beta \begin{bmatrix} 0 \\ 1 \end{bmatrix} = \begin{bmatrix} \alpha \\ \beta \end{bmatrix} \in \mathbb{C}^2.
 \]
 
-\subsection{Beyond 2 States: Qudits and General Laws}
+\subsection{Beyond Two-Basis States: Qudits and General Laws}
 
 There is nothing special about having exactly two states.
 \begin{itemize}
@@ -240,7 +241,7 @@ Measuring $\ket{\psi} = \sum \alpha_i \ket{i}$ outputs outcome $i$ with probabil
 Immediately after measurement, the state collapses to $\ket{i}$.
 \end{definition}
 
-\subsubsection{Example: The 4-dimensional system \texorpdfstring{($d=4$)}{(d=4)}}
+\paragraph{An example: a 4-dimensional system \texorpdfstring{($d=4$)}{(d=4)}}
 
 A common example is $d=4$. We can view this as a single system with 4 levels ($\ket{0}, \ket{1}, \ket{2}, \ket{3}$), or deeply importantly, as a system of \textbf{two qubits}.
 If we have two qubits, the combined system has $2 \times 2 = 4$ basis states:

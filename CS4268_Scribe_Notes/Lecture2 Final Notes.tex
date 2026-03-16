@@ -162,8 +162,8 @@ The states $\ket{+}$ and $\ket{-}$ form the Hadamard basis (also called the $X$-
 
 Of course, we know the basis of a (nontrivial) Hilbert space is not unique. We could choose to represent states w.r.t. different bases, so the corresponding column vectors would have different physical interpretations.
 
-\section{Measuring w.r.t. different bases and the Elitzur-Vaidman Test}
-\subsection{Measurement in Different Bases}
+\section{Measurements in different bases and the Elitzur-Vaidman Test}
+\subsection{Measurements in Different Bases}
 Up until now, we have only considered measurements with respect to the standard basis ($\{ \ket{0}, \ket{1} \}$ in the $2$ dimensional case). However, we are not restricted to just measuring in the standard basis and can use any valid set of orthonormal basis states as the measurement basis. Let us now consider the problem of making measurements with respect to different bases.
 \begin{example}[Measurement with respect to Different Bases]
 Consider a qubit in state $\ket{+} = \frac{1}{\sqrt{2}}(\ket{0} + \ket{1})$.
@@ -312,7 +312,9 @@ First, but first let us make a brief detour into the notion of rotations (more g
 %     Add material on rotations on a single qubit.
 % \end{definition}
 \subsection{Rotations and Reflections}
-\subsubsection{Rotations}
+
+\paragraph{Rotations}
+
 \begin{definition}[Rotations on a Single Qubit]
 For any $\theta$, we can build a physical device that rotates a qubit by angle $\theta$. Consider a transformation that rotates the quantum state by a small angle $\theta$. Starting from $\ket{0}$, we apply a rotation:
 $R(\theta): \ket{0} \mapsto \cos(\theta)\ket{0} + \sin(\theta)\ket{1}$
@@ -405,7 +407,7 @@ Then measure in $\{\ket{0}, \ket{1}\}$:
 \item $\ket{1}$ with probability $|\beta|^2$ $\rightarrow$ output $\ket{v}$.
 \end{itemize}
 
-\subsubsection{Reflections}
+\paragraph{Reflections}
 
 \textbf We can also build reflectors along any axis.
 
