@@ -1,0 +1,367 @@
+\noindent
+\textbf{CS4268 AY2025-26 Sem 2}
+\\
+\noindent
+Lecturer: Divesh Aggarwal
+\hfill
+Lecture 9                      %%% FILL IN LECTURE NUMBER HERE
+\hfill
+Date: March 19, 2026          %%% FILL IN LECTURE DATE HERE
+
+
+\noindent
+\rule{\textwidth}{1pt}
+
+\medskip
+
+
+\section{Shor's Algorithm for Factoring}
+
+In this section we discuss Shor's algorithm for factoring integers. This is arguably the first quantum algorithm to garner interest beyond the TCS community, due to its ability to crack RSA public-key cryptography. 
+
+At its core, what Shor really does is to reduce factoring to order-finding (the same as period-finding), then use Simon as a quantum subroutine to perform the latter. Thus this lecture is mostly about the number-theoretic preliminaries required to understand the pre- and post-processing components of Shor. 
+
+\paragraph{Number Theory Preliminaries.} $\mathbb{Z}_N = \{0,\dots, N-1\}$ forms a ring under $+,\times$ mod $N$. The \text{group of units} of $\mathbb{Z}_N$ under $\times$ mod $N$ is
+\begin{align*}
+    \mathbb{Z}_N^* := \{a \in \mathbb{Z}_N: \exists b \text{ s.t. } ab=1 \}.
+\end{align*}
+Note that $\mathbb{Z}_N^*$ is an abelian group. Define $\varphi(N):=|\mathbb{Z}_N^*|$. For any $a$, the order of $a$, $\operatorname{ord}_N(a)$ is the smallest integer $r$ such that $a^r=1$. For any $a$, $a^{\varphi(N)}=1$ and $\operatorname{ord}_N(a)|\varphi(N)$. Note that $\operatorname{ord}_N(a) \leq \varphi(N) \leq N$.
+
+
+\subsection{Reducing Factoring to Order Finding}
+Problem: given an integer $N$, find a nontrivial factor $u$ of $N$.
+
+Reduction: 
+\begin{enumerate}
+    \item First pick \(a \in \{2,\dots,N-1\}\) uniformly at random. Compute \(\gcd(a,N)\). If \(\gcd(a,N)>1\) then we have already found a nontrivial factor of $N$, so we are done.
+    
+    \item Otherwise \(\gcd(a,N)=1\), so \(a \in \mathbb{Z}_N^*\). Let $r=\operatorname{ord}_N(a)$, so that \(a^r \equiv 1 \pmod N\).
+    
+    \item If \(r\) is even, then
+    \[
+    a^r-1=(a^{r/2}-1)(a^{r/2}+1)\equiv 0 \pmod N.
+    \]
+    Thus
+    \[
+    N \mid (a^{r/2}-1)(a^{r/2}+1).
+    \]
+    If additionally
+    \[
+    a^{r/2} \mp 1 \not\equiv 0 \pmod N,
+    \]
+    then
+    \[
+    \gcd(a^{r/2}-1,N), \qquad \gcd(a^{r/2}+1,N)
+    \]
+    are nontrivial factors of \(N\).
+\end{enumerate}
+
+So the factoring problem reduces to finding the order \(r\) of a random \(a\), followed by a simple gcd computation.
+\paragraph{Remark on prerequisite conditions.}
+If \(r\) is odd, then \(r/2\) is not an integer, so the factorization
+\[
+a^r-1=(a^{r/2}-1)(a^{r/2}+1)
+\]
+is not available. Now suppose \(r\) is even. Since \(r\) is the order of \(a \pmod N\), we have
+\[
+a^r \equiv 1 \pmod N.
+\]
+Let \(x=a^{r/2}\). Then \(x^2 \equiv 1 \pmod N\), so \(x\) is a square root of \(1\) modulo \(N\). To obtain a nontrivial factorization, we need \(x \not\equiv \pm 1 \pmod N\). If \(a^{r/2}\equiv 1 \pmod N\), then \(a^{r/2}\) already equals \(1\) modulo \(N\), contradicting the minimality of \(r\) as the order. Hence this case cannot occur.
+If \(a^{r/2}\equiv -1 \pmod N\), then
+\[
+a^{r/2}+1 \equiv 0 \pmod N,
+\]
+so
+\[
+\gcd(a^{r/2}+1,N)=N,
+\]
+which is trivial. Thus this is a bad case for factoring. Therefore, the useful situation is when \(r\) is even and
+\[
+a^{r/2} \mp 1 \not\equiv 0 \pmod N,
+\]
+because then \(a^{r/2}\) is a nontrivial square root of \(1\) modulo \(N\), and
+\[
+\gcd(a^{r/2}-1,N),\qquad \gcd(a^{r/2}+1,N)
+\]
+produce nontrivial factors of \(N\).
+
+\paragraph{A worked example.} The lecture notes illustrate the reduction using
+\[
+F(x)=2^x \pmod{2419}.
+\]
+Suppose the period is
+\[
+r=580.
+\]
+Then
+\[
+2^{580}\equiv 1 \pmod{2419}.
+\]
+Since \(r\) is even, we look at
+\[
+2^{290}.
+\]
+The notes compute
+\[
+2^{290}\equiv 532 \pmod{2419}.
+\]
+Hence
+\[
+532^2 \equiv 1 \pmod{2419}.
+\]
+This means \(532\) is a square root of \(1\) modulo \(2419\). Since \(532 \not\equiv \pm 1 \pmod{2419}\), we can factor \(2419\) by taking gcds:
+\[
+\gcd(532-1,2419)=\gcd(531,2419)=49,
+\]
+\[
+\gcd(532+1,2419)=\gcd(533,2419)=51.
+\]
+Thus
+\[
+2419 = 49 \cdot 51
+\]
+
+This example exactly matches the reduction above:
+\[
+A=2^{r/2}=2^{290}, \qquad B=1.
+\]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\subsection{Order Finding}
+
+\paragraph{The Order-Finding Problem.} The order-finding problem is defined as follows: given $N\geq 2$ and $a \in \mathbb{Z}_N^*$, find the order of $a$.
+
+\paragraph{Classical protocols.} Classically, as far as we know no $\polylog(N)$ algorithm exists. The naive algorithm where we start from $r=1$ and compute $a^r$ takes $O(N)$ attempts in the worse case, where each attempt costs $O((\log N)^3)$ operations -- see modular exponentiation below. 
+
+Modular exponentiation: given integers $x \in \{0,\dots,N-1\}$ and $k$, find $x^k$ (mod $N$). Solution via \textit{repeated squaring}: start from $x$, multiply by itself to get $x^2$, multiply by itself to get $x^4$ and so forth until we get $x^{2^{\log k}}$. Each step is just standard multiplication which takes $O((\log N)^2)$ operations. So $x^{2^{\log k}}$ takes $O((\log k)(\log N)^2)$ operations. At each intermediate stage we save the results of $x^{2^i}$, $i=0,\dots,\log k$. Thus computing $x^k = x^{k_1 2^{\log k-1}} \times x^{k_2 2^{\log k-2}} \times \dots \times x^{k_{\log k} 2^0}$ takes a total of $O((\log k)(\log N)^2)$ operations.
+
+\paragraph{Order-Finding with Simon.} Given the integer $N$ and $a \in \mathbb{Z}_N^*$, define the periodic function
+\begin{align*}
+    f_a(x) := a^x \text{ mod } N.
+\end{align*}
+Thus $f_a$ is an $r$-periodic function: $f_a(x)=f_a(x+r)$. We shall extract $r$ using Simon. First, choose \(Q=2^m\) such that
+\[
+N^2 \leq Q < 2N^2.
+\]
+We use two registers:
+\begin{itemize}
+    \item a first register of \(m\) qubits, representing basis states \(\ket{x}\) for \(x\in\{0,1,\dots,Q-1\}\),
+    \item a second register of \(n=\lceil \log_2 N\rceil\) qubits, large enough to store the values of \(f(x)\in\{0,1,\dots,N-1\}\).
+\end{itemize}
+
+\paragraph{Simon over $\mathbb{Z}_Q$.} Run Simon on the initialized state $\ket{0^m}\ket{0^n}$, i.e. apply
+\[
+(\mathsf{DFT}_Q \otimes I)\, O_f \,(\mathsf{DFT}_Q \otimes I)
+\]
+followed by measurement of the first register.
+
+\begin{figure}[!ht]
+\centering
+\begin{quantikz}
+\lstick{$\ket{0^m}$} & \gate{\mathsf{DFT}_Q} & \gate[wires=2]{O_f} & \gate{\mathsf{DFT}_Q} & \meter{} \\
+\lstick{$\ket{0^n}$} & \qw & \qw & \qw & \qw
+\end{quantikz}
+\caption{Simon in Shor.}
+\label{fig:shor_order_finding}
+\end{figure}
+
+Recall that in the original setting Simon yields with \textit{full} probability the states $\ket{y}$ for $y=kN/L$, $k=0,\dots,L-1$. The analogues of $N,L$ here are $Q,r$, but here $r$ does not divide $Q$ in general. Nonetheless, running the same argument as in the original Simon, we get that after measurement, we get with \textit{high} probability the states $\ket{y}$ for \textit{integers} (represented as bitstrings) $y \approx kQ/r$, $k=0,\dots,r-1$. Note that in this case there is some small leakage of probability onto those states which are not approximately $kQ/r$.
+
+As before, our goal is to extract $r$ from $y \approx kQ/r$. Equivalently, since we know $Q$, the goal is to extract the closest rational approximation $\frac{k}{r} \approx \frac{y}{Q}$, from which we finally extract $r$.
+
+\subsection{Recovering Order from Measurements} 
+
+Let us make the claim (without proof) that given the outcome $y$, with probability at least $\frac{1}{4}$, there exists an integer
+\[
+k\in\{0,1,\dots,r-1\}
+\]
+for which
+\[
+\left|s-\frac{kQ}{r}\right|\le \frac12.
+\]
+Equivalently, this is
+\[
+\left|\frac{s}{Q}-\frac{k}{r}\right|\le \frac{1}{2Q}.
+\]
+That is, with probability at least $\frac{1}{4}$ the outcome of the quantum subroutine gives a highly accurate approximation to a fraction \(\frac{k}{r}\), from which we then try to recover the denominator \(r\).
+
+\paragraph{Why the approximation suffices.} Recall that \(r < N\), and we chose \(Q\ge N^2\). Hence
+\[
+Q > r^2.
+\]
+Therefore
+\[
+\left|\frac{s}{Q}-\frac{k}{r}\right|
+\le \frac{1}{2Q}
+< \frac{1}{2r^2}.
+\]
+This is the key numerical fact: \(\frac{s}{Q}\) approximates \(\frac{k}{r}\) so well that \(\frac{k}{r}\) is uniquely determined among all rationals with denominator at most \(r\).
+
+\paragraph{Uniqueness lemma.} Suppose
+\[
+\left|\frac{s}{Q}-\frac{k}{r}\right|\le \frac{1}{2Q}
+\]
+for some integers \(0\le k<r\), and assume \(r^2<Q\). Then there is at most one reduced fraction \(k'/r'\) with \(r'<N\) such that
+\[
+\left|\frac{s}{Q}-\frac{k'}{r'}\right|\le \frac{1}{2Q}.
+\]
+
+Indeed, if both \(\frac{k}{r}\) and \(\frac{k'}{r'}\) satisfied this bound, then by the triangle inequality,
+\[
+\left|\frac{k}{r}-\frac{k'}{r'}\right|
+\le
+\left|\frac{k}{r}-\frac{s}{Q}\right|
++
+\left|\frac{s}{Q}-\frac{k'}{r'}\right|
+\le \frac{1}{Q}.
+\]
+Multiplying through by \(rr'\), we get
+\[
+|kr'-k'r|
+\le \frac{rr'}{Q}.
+\]
+Since \(r,r'<N\) and \(Q\ge N^2\), we have
+\[
+\frac{rr'}{Q}<1.
+\]
+But \(kr'-k'r\) is an integer, so it must be \(0\). Hence
+\[
+\frac{k}{r}=\frac{k'}{r'}.
+\]
+So the rational approximation determines a unique fraction with sufficiently small denominator.
+
+\paragraph{Toy examples.} This is easy to see numerically.
+
+If \(Q=1{,}000{,}000\) and \(s=666{,}667\), then
+\[
+\frac{s}{Q}=0.666667 \approx \frac{2}{3}.
+\]
+If \(Q=1{,}000{,}000\) and \(s=181{,}818\), then
+\[
+\frac{s}{Q}=0.181818 \approx \frac{2}{11}.
+\]
+If \(Q=1{,}000{,}000\) and \(s=142{,}857\), then
+\[
+\frac{s}{Q}=0.142857 \approx \frac{1}{7}.
+\]
+In these examples, the intended fraction is visually obvious.
+
+However, for a value such as
+\[
+\frac{s}{Q}=0.309524,
+\]
+the answer is not immediately apparent by inspection, we can use Euclidean algorithm to recover it.
+
+\paragraph{Recovering the fraction via the Euclidean algorithm.}
+To recover the order, we apply the Euclidean algorithm to the pair \((Q,s)\). Equivalently, we compute the continued fraction expansion of the rational number \(\frac{s}{Q}\). This produces a sequence of convergents
+\[
+\frac{p_0}{q_0},\ \frac{p_1}{q_1},\ \frac{p_2}{q_2},\ \dots
+\]
+which give the best rational approximations to \(\frac{s}{Q}\) with small denominators.
+
+Concretely, the Euclidean algorithm writes
+\[
+Q = a_0 s + r_1,\qquad
+s = a_1 r_1 + r_2,\qquad
+r_1 = a_2 r_2 + r_3,\qquad \dots
+\]
+From the quotients \(a_0,a_1,a_2,\dots\), we obtain the continued fraction expansion
+\[
+\frac{s}{Q}
+=
+\cfrac{1}{a_0+\cfrac{1}{a_1+\cfrac{1}{a_2+\cdots}}}.
+\]
+Truncating this expansion at successive stages yields the convergents. Since the quantum subroutine guarantees that
+\[
+\frac{s}{Q}\approx \frac{k}{r},
+\]
+with \(r\) small, one of these convergents will be exactly \(\frac{k}{r}\) (or a reduced form of it).
+
+For example, if
+\[
+Q=1{,}000{,}000,\qquad s=309{,}524,
+\]
+then running the Euclidean algorithm on \((1000000,309524)\) produces the continued fraction of \(\frac{309{,}524}{1{,}000{,}000}\), whose convergents eventually reveal
+\[
+\frac{309{,}524}{1{,}000{,}000}\approx \frac{13}{42}.
+\]
+Thus the candidate recovered from the measurement is
+\[
+\frac{k}{r}=\frac{13}{42},
+\]
+so \(r=42\) is taken as the candidate order.
+
+Conceptually, this works because the Euclidean algorithm efficiently finds good integer relations between \(s\) and \(Q\), and hence recovers the small-denominator fraction \(\frac{k}{r}\) hidden in the approximation \(\frac{s}{Q}\).
+
+\paragraph{Connection with continued fractions.}
+The theorem from continued fractions says that if
+\[
+\left|\frac{s}{Q}-\frac{k}{r}\right|<\frac{1}{2r^2},
+\]
+then \(\frac{k}{r}\) appears as a convergent in the continued fraction expansion of \(\frac{s}{Q}\). Since we already showed
+\[
+\left|\frac{s}{Q}-\frac{k}{r}\right|\le \frac{1}{2Q}<\frac{1}{2r^2},
+\]
+the correct fraction \(\frac{k}{r}\) must occur among the convergents. Therefore, by computing the continued fraction expansion of \(\frac{s}{Q}\), we can recover the denominator \(r\), provided the fraction \(\frac{k}{r}\) is already in lowest terms.
+
+If \(\gcd(k,r)=d>1\), then
+\[
+\frac{k}{r}=\frac{k/d}{r/d}
+\]
+reduces to a smaller denominator. In that case, the continued fraction method may recover only a divisor of \(r\), rather than \(r\) itself. This is not a problem: once we obtain a candidate denominator \(r'\), we can test whether
+\[
+a^{r'}\equiv 1 \pmod N.
+\]
+If not, we repeat the quantum subroutine. Repeating a few times suffices with high probability.
+
+\paragraph{Verification Tests.} After obtaining a candidate \(r\), we verify it classically:
+\begin{enumerate}
+    \item Check whether \(a^r \equiv 1 \pmod N\). If not, discard and repeat.
+    \item If \(r\) is odd, discard and repeat.
+    \item Compute \(a^{r/2} \bmod N\). If \(a^{r/2} \equiv \pm1 \pmod N\), discard and repeat.
+    \item Otherwise output
+    \[
+    \gcd(a^{r/2}-1,N), \qquad \gcd(a^{r/2}+1,N).
+    \]
+\end{enumerate}
+
+Thus the quantum part only needs to provide a good candidate for the order; all remaining checks are efficient classical computations. The algorithm runs in $\polylog(N)$ time, since modular exponentiation, gcd computation, continued fractions, and the DFT can all be implemented efficiently.
+
+\subsection{Full Shor}
+To summarize, here is the entire Shor protocol for factoring.
+
+Problem: given an integer $N$, find a nontrivial factor $u$ of $N$.
+
+Shor's protocol:
+\begin{enumerate}
+    \item If $N$ is even, return $u=2$.
+    
+    \item Randomly choose $a \in \{2,\dots,N-1\}$. If $\gcd(a,N)\geq 3$ then return $u=\gcd(a,N)$.
+    
+    \item Otherwise, we now have $N$ odd and $a \in \mathbb{Z}_N^*$. Let $r$ be the order of $a$, which we find using Simon. 
+    
+    \item If $r$ passes the verification tests, return $\gcd(a^{r/2}-1,N)$ and $\gcd(a^{r/2}+1,N)$. 
+    
+    \item Since the previous step could still fail with small probability, as a final check we also compute $N/\gcd(a^{r/2}\pm 1,N)$ to ensure that they are nontrivial factors.
+    
+\end{enumerate}
+
+
+

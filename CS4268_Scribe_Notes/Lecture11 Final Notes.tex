@@ -1,0 +1,227 @@
+% \documentclass[11pt]{article}
+
+% %%%% CUSTOM PREAMBLE
+% \usepackage{./preamble}
+
+% %% ADD MISC DEFINITIONS HERE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %\addtolength{\topmargin}{-1cm}
+% %\addtolength{\textheight}{2cm}
+
+% \begin{document}
+
+%\maketitle
+
+\newpage
+%%*****************************************************
+\noindent
+\textbf{CS4268 AY2025-26 Sem 2}
+\\
+\noindent
+Lecturer: Divesh Aggarwal
+\hfill
+Lecture 11                      %%% FILL IN LECTURE NUMBER HERE
+\hfill
+Date: April 9, 2026          %%% FILL IN LECTURE DATE HERE
+
+\noindent
+\rule{\textwidth}{1pt}
+
+\medskip
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% BODY OF SCRIBE NOTES GOES HERE
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%Write lecture topic above.
+
+\section{The Black-Box Query Model}
+In quantum algorithms, we frequently analyze problems using the \textbf{black-box (or oracle) query model}, where we are able to access both a function's input and output without knowing the actual circuit of the function.
+
+\paragraph{Why do we care about this model?}
+We use this model because, for many algorithms, the cost of querying the input dominates the overall time complexity. By counting the number of queries required to evaluate a function, we abstract away the internal operations and capture the primary difficulty of the algorithm.
+
+\subsection{Equivalence of Standard and Phase Oracles (Algebraic Proof)}
+When discussing query complexity, we typically encounter two types of oracles:
+\begin{enumerate}
+    \item \textbf{Standard Oracle ($Q_f^*$):} An oracle acting on $n+1$ qubits that XORs the function value into the target qubit.
+    \[ Q_f^* \ket{x} \ket{y} = \ket{x} \ket{y \oplus f(x)} \]
+    \item \textbf{Phase Oracle ($Q_f^{\pm}$):} An oracle that encodes the function value into the phase. On $n+1$ qubits, it acts as:
+    \[ Q_f^{\pm} \ket{x}\ket{y} = (-1)^{y \cdot f(x)} \ket{x}\ket{y} \]
+\end{enumerate}
+
+In terms of query complexity, these two models are equivalent. A query in one model can simulate a query in the other without increasing the asymptotic query count. We can write $Q_f^*$ algebraically in terms of $Q_f^{\pm}$ using unitary transformations.
+
+Let $V = I^{\otimes n} \otimes H$, where $H$ is the Hadamard gate applied to the target qubit. Since $H$ is its own inverse ($H = H^\dagger$), it follows that $V = V^\dagger$. We can express the standard oracle as:
+\[ Q_f^* = V Q_f^{\pm} V \]
+
+Consider a general quantum algorithm $\mathcal{A}$ that makes $T$ queries to the standard oracle, interleaved with arbitrary unitary operations $U_k$:
+\[ \mathcal{A} = U_T Q_f^* U_{T-1} Q_f^* \dots U_1 Q_f^* U_0 \]
+
+Substituting $Q_f^* = V Q_f^{\pm} V$:
+\[ \mathcal{A} = U_T (V Q_f^{\pm} V) U_{T-1} (V Q_f^{\pm} V) \dots U_1 (V Q_f^{\pm} V) U_0 \]
+
+Since $VV = V V^\dagger = I$, adjacent $V$ pairs in the interior collapse, giving:
+\[ \mathcal{A} = (U_T V) Q_f^{\pm} (V U_{T-1} V) Q_f^{\pm} \dots Q_f^{\pm} (V U_0) \]
+
+Because the product of unitary matrices is inherently unitary, we define new intermediate operations as follows:
+\[
+\tilde{U}_k = \begin{cases} V U_0 & k = 0 \\ V U_k V & 1 \leq k \leq T-1 \\ U_T V & k = T \end{cases}
+\]
+
+Each $\tilde{U}_k$ is unitary, and the algorithm simplifies to:
+\[ \mathcal{A} = \tilde{U}_T Q_f^{\pm} \tilde{U}_{T-1} Q_f^{\pm} \dots Q_f^{\pm} \tilde{U}_0 \]
+
+This modified sequence represents a valid quantum algorithm. All the transformations $V$ have been strictly absorbed into the algorithm's intermediate unitary operations $\tilde{U}_k$. Because the query complexity model does not charge for intermediate unitary operations, simulating the standard oracle with the phase oracle (or vice versa) preserves the exact same query count $T$.
+
+\section{Decision vs.\ Search Problems}
+We often reduce search problems to decision problems because solving the decision variant provides a rigorous lower bound for the search variant. If you cannot even decide if a solution exists within $T$ queries, you certainly cannot find the specific solution in $T$ queries. Conversely, if you can find a solution in $T$ queries, you can easily answer the decision problem. 
+
+\subsection{Promise Problems vs.\ Total Problems}
+When we are \textit{promised} that the input follows a specific structure (like periodicity), quantum mechanics can exploit that global structure through interference for massive gains. When there is no promise (a \textit{total} problem), quantum mechanics struggles. 
+
+To see this contrast, we summarize the query complexities across deterministic ($D$), randomized ($R$), and quantum ($Q$) paradigms for the key problems discussed:
+
+\begin{table}[h!]
+    \centering
+    \renewcommand{\arraystretch}{1.5}
+    \begin{tabular}{|l|l|c|c|c|l|}
+        \hline
+        \textbf{Problem} & \textbf{Type} & $\mathbf{D(f)}$ & $\mathbf{R(f)}$ & $\mathbf{Q(f)}$ & \textbf{Quantum Speedup} \\ \hline
+        Simon's (Decision) & Promise & $\Omega(\sqrt{N})$ & $\Omega(\sqrt{N})$ & $O(\log N)$ & \textbf{Exponential} \\ \hline
+        Element Distinctness & Total & $\Theta(N)$ & $\Theta(N)$ & $\Theta(N^{2/3})$ & Polynomial \\ \hline
+        Grover's Search & Total & $\Theta(N)$ & $\Theta(N)$ & $\Theta(\sqrt{N})$ & Polynomial (Quadratic) \\ \hline
+        Recursive Majority Tree & Total & $\Theta(N)$ & $O(N^{0.893})$ & $\Theta(\sqrt{N})$ & Polynomial \\ \hline
+    \end{tabular}
+    \caption{Comparison of Query Complexities ($N$ is the size of the search space)}
+    \label{tab:complexity_summary}
+\end{table}
+
+\subsection{Polynomial Gaps (Total Problems)}
+The total problems listed above serve as concrete examples of the BBCMW theorem. Because they lack a structural promise, their quantum speedups are strictly polynomial, in sharp contrast to the exponential speedup seen in promise problems.
+
+\begin{theorem}[BBCMW '98 Polynomial Bound]
+    For any total boolean function $f$, the deterministic query complexity $D(f)$ is polynomially bounded by the quantum query complexity $Q(f)$. Specifically:
+    \[ D(f) \leq O(Q(f)^6) \]
+    Furthermore, comparing deterministic and randomized classical models yields $D(f) \leq O(R(f)^3)$.
+\end{theorem}
+
+\subsection{Classical Bounds for Simon's Problem}
+We frequently hear the claim that Simon's algorithm provides an exponential quantum speedup, solving the problem in $O(\log N)$ queries. To truly appreciate this quantum advantage, we must rigorously prove that no classical algorithm can beat the quantum algorithm. 
+
+\begin{theorem}[Deterministic Classical Upper Bound]
+    There exists a deterministic classical algorithm that solves Simon's problem with $100\%$ certainty making exactly $O(\sqrt{N})$ queries to the oracle $Q_f$.
+\end{theorem}
+
+\begin{proof}
+    Let $N = 2^n$. For simplicity, assume $n$ is even. We represent any $n$-bit string as the concatenation of two $n/2$-bit strings.
+
+    The algorithm proceeds by querying two specific sets of inputs:
+    \begin{enumerate}
+        \item Let $A = \{ 0^{n/2}y \mid y \in \{0, 1\}^{n/2} \}$. We query all $2^{n/2} = \sqrt{N}$ strings in $A$.
+        \item Let $B = \{ z0^{n/2} \mid z \in \{0, 1\}^{n/2} \}$. We query all $2^{n/2} = \sqrt{N}$ strings in $B$.
+    \end{enumerate}
+    The total number of queries made is $|A \cup B| \leq 2\sqrt{N} = O(\sqrt{N})$.
+
+    We must prove that for any secret period $s \in \{0, 1\}^n \setminus \{0^n\}$, this queried set contains a collision. Let $s = s_1 s_2$, where $s_1$ and $s_2$ are bit strings of length $n/2$. 
+
+    Consider the two specific strings $u$ and $v$ defined as $u = 0^{n/2} s_2$ and $v = s_1 0^{n/2}$. By definition, $u \in A$ and $v \in B$. Since our algorithm queries all strings in both sets, we are guaranteed to have evaluated both $f(u)$ and $f(v)$. 
+
+    Observe the bitwise XOR:
+    \[ u \oplus v = (0^{n/2} \oplus s_1)(s_2 \oplus 0^{n/2}) = s_1 s_2 = s \]
+    Because $u \oplus v = s$, the promise of Simon's problem guarantees that $f(u) = f(v)$. Since $s \neq 0^n$, it must be that $u \neq v$. Therefore, the algorithm deterministically finds a collision within $O(\sqrt{N})$ queries, revealing $s = u \oplus v$.
+\end{proof}
+
+\begin{theorem}[Classical Lower Bound]
+    Any classical randomized algorithm making $T$ queries to the oracle $Q_f$ can solve Simon's problem with probability at most $O(T^2 / N)$. Therefore, achieving a high probability of success requires $T = \Omega(\sqrt{N})$ queries.
+\end{theorem}
+
+\begin{proof}
+    We use Yao's minimax principle: it suffices to prove a lower bound against 
+    deterministic algorithms on a hard distribution over inputs. Specifically, 
+    we choose the secret period $s \in \{0,1\}^n \setminus \{0^n\}$ uniformly 
+    at random, and show that no deterministic algorithm making $T$ queries can 
+    find a collision with probability greater than $O(T^2/N)$ over this 
+    distribution.
+
+    Fix any deterministic query sequence $x_1, \dots, x_T$ (which may be 
+    adaptive, but is deterministic given the oracle responses). After $T$ 
+    queries, the algorithm has observed $T$ input-output pairs 
+    $(x_1, f(x_1)), \dots, (x_T, f(x_T))$. A collision is found if and only 
+    if there exists a pair $(x_i, x_j)$ with $i \neq j$ such that 
+    $x_i \oplus x_j = s$.
+
+    For any fixed pair $(x_i, x_j)$, the probability over a uniformly random 
+    $s$ that $x_i \oplus x_j = s$ is exactly $\frac{1}{N-1}$, since $s$ is 
+    uniform over $\{0,1\}^n \setminus \{0^n\}$. There are at most 
+    $\binom{T}{2} = \frac{T(T-1)}{2}$ such pairs. By the union bound:
+    \[ \Pr_s[\text{collision found}] \leq \binom{T}{2} \cdot \frac{1}{N-1} 
+    \approx \frac{T^2}{2N} = O\!\left(\frac{T^2}{N}\right) \]
+    For this probability to reach $\frac{2}{3}$, we need $T = \Omega(\sqrt{N})$.
+    Since this holds for every deterministic algorithm, by Yao's minimax 
+    principle it holds for every randomized algorithm as well.
+\end{proof}
+
+\section{Lower Bound for Grover's Search (Hybrid Argument)}
+We just saw that promise problems allow for exponential quantum speedups. But what happens when we strip away the promise and look at a total problem? We shall analyze Grover's algorithm to see. Grover gives us a quadratic speedup ($O(\sqrt{N})$), but can we do better? To prove we cannot, we use the distance method.
+
+To prove this, we consider the problem of distinguishing between two oracle states:
+\begin{itemize}
+    \item \textbf{NO Instance:} An oracle of all zeroes ($f(x) = 0$ for all $x$).
+    \item \textbf{YES Instance:} An oracle with a single marked item $x^*$ ($f(x^*) = 1$).
+\end{itemize}
+
+\begin{lemma}[Reduction: Search to Decision]
+    If a quantum algorithm can find a single marked item in a search space of size $N$ using $T$ queries, it can decide if a marked item exists using $T+1$ queries. Thus, $Q(\text{Search}) = \Omega(Q(\text{Decision}))$.
+\end{lemma}
+
+\begin{proof}
+    Suppose we have a quantum algorithm $\mathcal{A}_{search}$ that solves the Search problem using $T$ queries. We construct an algorithm $\mathcal{A}_{decision}$ as follows:
+    \begin{enumerate}
+        \item Run $\mathcal{A}_{search}$ on the oracle $Q_f$, utilizing $T$ queries. Let $z$ be the output index.
+        \item Make $1$ additional query to evaluate $f(z)$.
+        \item If $f(z) = 1$, output YES. If $f(z) = 0$, output NO.
+    \end{enumerate}
+    If the oracle is a YES instance, the search algorithm outputs the correct index $x^*$, yielding $f(x^*) = 1$. If the oracle is a NO instance, whatever garbage index $z$ is outputted yields $f(z) = 0$. Consequently, $Q(\text{Decision}) \leq Q(\text{Search}) + 1$.
+\end{proof}
+
+\subsection{Rigorous Lower Bound via Distance Method}
+
+\begin{theorem}[BBBV '97 Lower Bound]
+    Any quantum algorithm requires $\Omega(\sqrt{N})$ queries to solve the unstructured search decision problem (distinguishing an empty oracle from an oracle with exactly one marked item).
+\end{theorem}
+
+\begin{proof}
+    Let $O_0$ be the phase oracle where $f(x) = 0$ for all $x$ ($O_0 = I$). Let $O_i$ be the phase oracle where exactly the $i$-th element is marked, meaning $O_i = I - 2\ket{i}\bra{i}$.
+
+    A general quantum algorithm alternating between queries and intermediate unitaries $U_t$ produces a state at time $t$. Let $\ket{\psi_t} = U_t O_0 \ket{\psi_{t-1}}$ be the state running on the empty oracle, and $\ket{\phi_t^{(i)}} = U_t O_i \ket{\phi_{t-1}^{(i)}}$ be the state running on the marked oracle.
+
+    We define the Euclidean distance between the two quantum states at time $t$ as $D_t^{(i)} = \left\| \ket{\phi_t^{(i)}} - \ket{\psi_t} \right\|$. At $t=0$, $D_0^{(i)} = 0$.
+
+    We bound how much the distance can grow in a single query step:
+    \begin{align*}
+        D_t^{(i)} &= \left\| U_t O_i \ket{\phi_{t-1}^{(i)}} - U_t O_0 \ket{\psi_{t-1}} \right\| \\
+        &= \left\| O_i \ket{\phi_{t-1}^{(i)}} - O_0 \ket{\psi_{t-1}} \right\| \quad \text{(Unitary invariance)}
+    \end{align*}
+    Applying the triangle inequality by adding and subtracting $O_i \ket{\psi_{t-1}}$:
+    \begin{align*}
+        D_t^{(i)} &\leq \left\| O_i \ket{\phi_{t-1}^{(i)}} - O_i \ket{\psi_{t-1}} \right\| + \left\| (O_i - O_0) \ket{\psi_{t-1}} \right\| \\
+        &= \left\| \ket{\phi_{t-1}^{(i)}} - \ket{\psi_{t-1}} \right\| + \left\| (-2\ket{i}\bra{i}) \ket{\psi_{t-1}} \right\| \\
+        &= D_{t-1}^{(i)} + 2 \left\| \ket{i}\bra{i} \ket{\psi_{t-1}} \right\|
+    \end{align*}
+    Let $a_{t, i} = \left\| \ket{i}\bra{i} \ket{\psi_{t}} \right\|$ be the amplitude magnitude of querying index $i$ at time $t$. Unrolling the recurrence from $t=0$ to $T-1$ yields $D_T^{(i)} \leq \sum_{t=0}^{T-1} 2a_{t, i}$.
+
+    We square both sides and sum over all $N$ possible locations for the marked item. Applying the Cauchy-Schwarz inequality ($\left(\sum x y\right)^2 \leq \sum x^2 \sum y^2$):
+    \[ \sum_{i=1}^N \left( D_T^{(i)} \right)^2 \leq 4 \sum_{i=1}^N \left( \left( \sum_{t=0}^{T-1} 1^2 \right) \left( \sum_{t=0}^{T-1} a_{t, i}^2 \right) \right) = 4T \sum_{i=1}^N \sum_{t=0}^{T-1} a_{t, i}^2 \]
+    Swapping the order of summation:
+    \[ \sum_{i=1}^N \left( D_T^{(i)} \right)^2 \leq 4T \sum_{t=0}^{T-1} \sum_{i=1}^N a_{t, i}^2 \]
+    Since $\sum_{i=1}^N a_{t, i}^2$ is the sum of the probabilities of measuring all possible query states at time $t$, it is bounded by $1$. Therefore, $\sum_{i=1}^N \left( D_T^{(i)} \right)^2 \leq 4T^2$.
+
+    For the algorithm to successfully distinguish the YES instances from the NO instance with high probability, the final state must be distinguishable by at least some positive constant $c$, meaning $D_T^{(i)} \geq c$ for all $i$. Substituting this:
+    \[ \sum_{i=1}^N c^2 \leq 4T^2 \implies c^2 N \leq 4T^2 \implies T = \Omega(\sqrt{N}) \]
+\end{proof}
+
+% \bibliographystyle{alpha}
+% \bibliography{main.bib}
+% \end{document}

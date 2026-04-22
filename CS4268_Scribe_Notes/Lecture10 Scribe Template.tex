@@ -1,0 +1,180 @@
+% \documentclass[11pt]{article}
+
+% %%%% CUSTOM PREAMBLE
+% \usepackage{./preamble}
+
+% %% ADD MISC DEFINITIONS HERE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %\addtolength{\topmargin}{-1cm}
+% %\addtolength{\textheight}{2cm}
+
+% \begin{document}
+
+%\maketitle
+
+\newpage
+ %%*****************************************************
+\noindent
+\textbf{CS4268 AY2025-26 Sem 2}
+\\
+\noindent
+Lecturer: Divesh Aggarwal
+\hfill
+Lecture 10                      %%% FILL IN LECTURE NUMBER HERE
+\hfill
+Date: March 26, 2026          %%% FILL IN LECTURE DATE HERE
+
+
+\noindent
+\rule{\textwidth}{1pt}
+
+\medskip
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% BODY OF SCRIBE NOTES GOES HERE
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%Write lecture topic above.
+\textbf{Instructions}\\
+\begin{itemize}
+    \item Try to leave the preamble unchanged, only make changes to \texttt{main.tex} and  \texttt{references.bib}. Add images to the \texttt{images} folder. 
+    \item Share one (zipped) directory preserving the directory structure on Canvas. 
+    \item Prepare organized notes by elaborating on the broad items provided in different sections below based on the lecture material completing any missing details from lectures.
+    \item Feel free to modify structure and/or order of contents as you see fit; the below is just a guideline.
+\end{itemize} 
+
+
+\kk{Today is on search and grover. Add any details you deem helpful/interesting.}
+
+\section{Grover's algorithm}
+\begin{enumerate}
+    \item Want to search for one of $M$ marked elements among $N$ elements. Given a Boolean function $f: [N]=\{0,1,\dots,N-1\} \longrightarrow \{0,1\}$. $f(x)=1$ if $x$ is one of those marked elements, otherwise $f(x)=0$.
+    
+    \item How is this done classically? For deterministic algorithms, worst case scenario requires $N$ queries. Probabilistically, if we randomly choose $k$ items to be queried, and require that we find (at least) a solution with probability as least $1-\varepsilon$, then we have (assuming $M/N \ll 1$) $1-(1-\frac{M}{N})^k \approx kM/N \geq 1-\varepsilon$, i.e. for a fixed error margin we need $k=\Omega(N/M)$ queries to solve the problem. 
+    
+    \item Grover's algorithm solves this problem using $\mathcal{O}(\sqrt{N/M})$ oracle queries, thus providing a \textit{quadratic speedup in query complexity}.
+
+    \begin{algorithm}
+    \caption{Grover's Algorithm}
+    %\label{algo:TGD}
+    \begin{algorithmic}[1]
+    \Require Oracle $O_f$ to implement $f$ unitarily, where $f$ specifies the solutions.
+    \State Initialize the state $\ket{0^n}\ket{0}$.
+    \State Apply $H^{\otimes n}$ to the $n$ work qubits and $HX$ to the ancillary qubit:
+    \[
+        (H^{\otimes n} \otimes HX)\ket{0^n}\ket{0} = \frac{1}{\sqrt{2^n}}\sum_{x=0}^{2^n-1} \ket{x}\ket{-}.
+    \]
+    \State Apply the Grover operator $G=H^{\otimes n}(2\ket{0^n}\bra{0^n}-I)H^{\otimes n}O_f$. Iterate $k = \left\lceil \frac{\pi}{4}\sqrt{\frac{N}{M}} \right\rceil$ times:
+    \[
+        G^k \left( \frac{1}{\sqrt{2^n}}\sum_{x=0}^{2^n-1} \ket{x} \right) = \alpha \left( \frac{1}{\sqrt{N-M}} \sum_{x \in A} \ket{x} \right) + \beta \left( \frac{1}{\sqrt{M}} \sum_{x \in B} \ket{x} \right)
+    \]
+    where $|\alpha| \ll 1$, $|\beta| \approx 1$. (Ancillary qubit suppressed.)
+    \State Measure the $n$ work qubits.
+    \Ensure $x \in B$ (the solution set) with high probability.
+    \end{algorithmic}
+    \end{algorithm}
+
+    \begin{figure}[h]
+    \label{GroverCircuit}
+        \centering
+        \begin{quantikz}[wire types = {b},classical
+        gap=0.1cm, column sep=0.3cm]
+        \lstick{$\ket{0^n}$} && \gate{H^{\otimes n}} \slice{} & \gate[2]{G} & \gate[2]{G} & \midstick[2,brackets=none]{$\cdots$} & \gate[2]{G} & \gate[2]{G} \slice{} && \meter{}\\
+        \lstick{\text{Ancilla}\quad$\ket{0}$} & \gate{X} & \gate{H} &&&&&&& \rstick{$\ket{-}$}
+        \end{quantikz}
+        \caption{Quantum circuit implementing Grover's algorithm.}
+        %\label{fig:enter-label}
+    \end{figure}
+
+    \begin{figure}[h]
+        \centering
+        \begin{quantikz}[wire types = {b},classical
+        gap=0.1cm, column sep=0.3cm]
+        & \gate[2]{G} & \midstick[2,brackets=none]{=} & \gate[2]{O_f} & \gate{H^{\otimes n}} & \gate{2\ket{0^n}\bra{0^n}-I} & \gate{H^{\otimes n}} &\\ 
+        &&&&&&&
+        \end{quantikz}
+        \caption{The Grover Operator.}
+    \end{figure}
+
+    \item Analysis of Grover:
+    The operator $2\ket{0^n}\bra{0^n}-I$ is a conditional phase shift operator: upon its implementation every computational basis state except for $\ket{0^n}$ acquires a phase shift of $-1$. This can be implemented using the phase-kickback trick, where $f(0^n)=0$ and $f(x)=1$ for all $x \neq 0^n$. The Grover operator $G$ can thus be written as
+    \[
+        G = (2\ket{\psi}\bra{\psi}-I)O_f.
+    \]
+    After the preprocessing but before implementing $G$ (this stage is indicated by the dotted red line in Fig. \ref{GroverCircuit}), we have the initial state $\ket{\psi}$. Let us define the sets 
+    \begin{align*}
+        A = \{x \in \{0,1\}^n \;|\; f(x)=0\}\\
+        B = \{x \in \{0,1\}^n \;|\; f(x)=1\}.
+    \end{align*}
+    (that is, $B$ is the set of solutions to the search problem) and their corresponding uniform superpositions
+    \begin{align*}
+        \ket{\alpha} &= \frac{1}{\sqrt{N-M}} \sum_{x \in A} \ket{x}\\
+        \ket{\beta} &= \frac{1}{\sqrt{M}} \sum_{x \in B} \ket{x}.
+    \end{align*}
+    We can then rewrite
+    \[
+        \ket{\psi} = \sqrt{\frac{N-M}{N}}\ket{\alpha} + \sqrt{\frac{M}{N}}\ket{\beta}  
+    \]
+    as a vector in the 2D real subspace spanned by $\ket{\alpha}$ and $\ket{\beta}$. Note that $\braket{\beta}{\alpha}=0$. Now comes the crucial part of the analysis: Since $O_f$ marks the solutions by introducing a phase shift of $-1$, we have $O_f(a\ket{\alpha}+b\ket{\beta}) = a\ket{\alpha}-b\ket{\beta}$, i.e. $O_f = 2\ket{\alpha}\bra{\alpha}-1$ is also a reflection operator. Thus the Grover operator, being a composition of two reflection operators in $\mathbb{R}^2$ is a rotation operator (see lemma below).
+
+    \begin{lemma}
+        In $\mathbb{R}^2$, the composition of two reflections is a rotation.
+    \end{lemma}
+    \begin{proof}
+        Any reflection about the subspace spanned by the unit vector $v$ is given by $R_v = 2vv^T-1$. One can easily check (by evaluating the inner product) that for any arbitrary unit vector $w$, we have $\theta_{v,w} = \theta_{v,R_v(w)} = \frac{1}{2}\theta_{w,R_v(w)}$. Note that $\text{det}(R_v) = -1$ (where we have used the fact that the eigenvalues of the projector $vv^T$ are $1$ and $0$), as is expected for a reflection.
+
+        Given arbitrary unit vectors $v,w$ defining the lines of reflection, we now show that their product is a proper rotation, i.e. it is orthogonal and has determinant $1$. Both proofs are straightforward. First we have $(2vv^T-1)(2vv^T-1) = 1$, thus $(R_vR_w)^T (R_vR_w) = I$; second we have $\text{det}(AB) = \text{det}(A)\text{det}(B)$, so $\text{det}(R_vR_w) = 1$.
+    \end{proof}
+
+    \begin{proposition}
+        In the $\ket{\alpha},\ket{\beta}$ basis, the Grover operator is represented as
+        \[
+            G = 
+            \begin{bmatrix}
+                \cos \theta & -\sin \theta\\
+                \sin \theta &
+                \cos \theta
+            \end{bmatrix},
+        \]
+        where $\theta$ is such that $\cos(\theta/2) = \sqrt{\frac{N-M}{N}}$ and $\sin(\theta/2) = \sqrt{\frac{M}{N}}$.
+    \end{proposition}
+    \begin{proof}
+        For ease of notation let us denote the coefficients of $\ket{\psi}$ as $a=\sqrt{\frac{N-M}{N}}$ and $b=\sqrt{\frac{M}{N}}$. Then
+        \begin{align*}
+            G\ket{\alpha} &= \left( 2(a^2\ket{\alpha}\bra{\alpha} + b^2\ket{\beta}\bra{\beta} + ab\ket{\alpha}\bra{\beta} + ab\ket{\beta}\bra{\alpha}) - I \right)O_f\ket{\alpha}\\
+            &= (2a^2-1)\ket{\alpha} + (2ab)\ket{\beta}.
+        \end{align*}
+        The resulting coefficients remind us of the trigonometric formulae $\cos(2\theta) = 2\cos^2(\theta)-1$ and $\sin(2\theta) = 2\sin(\theta)\cos(\theta)$. Thus if we define $\theta$ such that $\cos(\theta/2) = a = \sqrt{\frac{N-M}{N}}$ and $\sin(\theta/2) = b = \sqrt{\frac{M}{N}}$, then $G\ket{\alpha} = \cos(\theta)\ket{\alpha} + \sin(\theta)\ket{\beta}$. Likewise, we can show that $G\ket{\beta} = -\sin(\theta)\ket{\alpha} + \cos(\theta)\ket{\beta}$.
+    \end{proof}
+
+    Starting from the state $\ket{\psi} = \cos\frac{\theta}{2}\ket{\alpha} + \sin\frac{\theta}{2}\ket{\beta}$ and applying $G$ gives us, after $k$ iterations,
+    \[
+        G^k\ket{\psi} = \cos\left( \frac{2k+1}{2}\theta\right)\ket{\alpha} + \sin\left( \frac{2k+1}{2}\theta\right)\ket{\beta}.
+    \]
+    To maximise the probability of obtaining an element in $B$ (i.e. getting a solution), we want that $\frac{2k+1}{2}\theta\ \approx \frac{\pi}{2}$. This leads us to choose $k = \lfloor \frac{\pi}{2\theta} - \frac{1}{2} \rceil$, where $\lfloor x \rceil$ denotes the rounding of $x$ to the nearest integer. Note that error is at most $\theta$, since if we are more than $\theta$ off from $\pi/2$ we would rotate further by another $\theta$. So smaller $M/N$ implies smaller $\theta$ implies more precision.
+
+    \item It is also reasonable to assume $M \leq N/2$. In this situation, $\frac{\theta}{2} \geq \sin \frac{\theta}{2} = \sqrt{\frac{M}{N}}$, so
+    \[
+        k = \left\lfloor \frac{\pi}{2\theta} - \frac{1}{2} \right\rceil \leq \frac{\pi}{2\theta} \leq \left\lceil \frac{\pi}{4}\sqrt{\frac{N}{M}} \right\rceil,
+    \]
+    i.e. the number of Grover iterations required is $k = \mathcal{O}(\sqrt{\frac{N}{M}})$, a quadratic improvement over the $\mathcal{O}(\frac{N}{M})$ classical solution. If $M \geq N/2$, we simply double $N$ by introducing an ancilla qubit and extending $f$ s.t. the original marked items remain marked only when the ancilla is in the state $\ket{0}$.
+
+    \item What have we done? We have effectively \textit{amplified} the probability of getting a solution, from $\sin^2\left(\frac{\theta}{2}\right)$ to $\sin^2\left(\frac{2k+1}{2}\theta \right) \approx 1$, by choosing $k$ appropriately. The full generality of this technique will be discussed further in the section on amplitude amplification.
+\end{enumerate}
+
+
+
+
+
+
+
+
+
+
+
+
+
+% \bibliographystyle{alpha}
+% \bibliography{main.bib}
+% \end{document}
